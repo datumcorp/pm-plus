@@ -1,0 +1,19 @@
+{
+  "name": "pm-plus",
+  "version": "1.0.0",
+  "description": "Postman collection simplified, in YAML",
+  "bin": {
+    "pm+": "./pmp.js"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@git.datumcorp.com:10034/datum/m4-stdpack.git"
+  },
+  "author": "Datum ClearMind Sdn Bhd",
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^3.12.1",
+    "tiny-glob": "^0.2.6"
+  }
+}
