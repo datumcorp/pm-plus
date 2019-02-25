@@ -57,29 +57,31 @@ async function loadYaml(fn) {
         // t = t.toString().replace(/`/g, '\\`')
         // eval(`t = \`${t}\` `)
         const dat = yaml.load(t)
-        const pm = {
+        , pm = {
             info: {
                 name: dat.name,
                 schema: dat.schema
             },
             item: [],
         }
+        , vars = {}
         dat.steps.map(step => {
             if (typeof step === 'string') {
+                if (setVars(step, vars)) return
                 // include(file, [step, step])
                 return processInclude(step, pm)
             }
-            makeStep(step, pm)
+            makeStep(step, pm, vars)
         })
 
         await writeAsync(`${fn}.json`, JSON.stringify(pm, null, 2))
     }
     catch (err) {
-        console.error(fn, ':', err.message)
+        console.error(fn, ':', err.stack)
     }
 }
 
-function makeStep(step, pm) {
+function makeStep(step, pm, vars) {
     const det = Object.values(step)[0]
     , fdata = det.body.formdata
 
@@ -99,10 +101,21 @@ function makeStep(step, pm) {
         })),
         body: det.body
     };
+    
+    if (vars) {
+        const presets = []
+        Object.keys(vars).map(k => {
+            let v = vars[k]
+            if (typeof v === 'string') v = `'${v}'`
+            presets.push(`pm.variables.set('${k}', ${v});`)
+        })
+        if (presets.length) det.prerequest = `${presets.join('\n')}\n${det.prerequest || ''}`
+    }
     const event = []
     addEvent('prerequest', event, det)
     addEvent('test', event, det)
-    
+    // console.log('event', det.prequest, event)
+
     const VERBS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'TRACE']
     VERBS.map(v => {
         if (!det[v]) return
@@ -126,6 +139,7 @@ function makeStep(step, pm) {
 }
 
 function addEvent(key, events, det) {
+    console.log('addevent', key, det[key] !== undefined)
     if (!det[key]) return
     events.push({
         listen: key,
@@ -152,7 +166,7 @@ async function fromPostman(dat) {
 
         const o = {}
         , req = { ...item.request }
-        
+
         delete item.request
         if (item.response && item.response.length < 1) delete item.response
 
@@ -163,7 +177,7 @@ async function fromPostman(dat) {
 
         delete req.body.mode
         const fdata = req.body.formdata
-        if (req.body.raw) req.body.raw = req.body.raw.replace(/\t/g, '  ')
+        if (req.body.raw) req.body.raw = req.body.raw.replace(/[\r\t]/g, '  ')
         else if (Array.isArray(fdata)) {
             // remove empty formdata entries
             req.body.formdata = fdata.filter(r => r.key.length)
@@ -211,12 +225,29 @@ async function processFile(text) {
     }
 }
 
-const rxIncl = /include\(([A-Za-z,._\-0-9\ \/\=]*)\)/gm
+const rxSet = /set\(([A-Za-z,._\-0-9\ \/\=]*)\)/gm
+function setVars(str, obj) {
+    console.log('...', str)
+    // support clear() to clear variables
+    const m = rxSet.exec(str)
+    if (!m || !m[1]) return
 
+    const vars = m[1]
+    vars.split(',').map(v => {
+        if (!v) return
+        const [k, val] = v.split('=').map(s => s.trim())
+        if (isNumber(val)) obj[k] = +val
+        else obj[k] = val
+    })
+    return true
+}
+
+const rxIncl = /include\(([A-Za-z,._\-0-9\ \/\=]*)\)/gm
 async function processInclude(file, pm) {
 // include(file, [step, step])
     console.log('...', file)
     const m = rxIncl.exec(file)
+    if (!m) console.log('xxx', file)
     if (!m[1]) return
     let steps = m[1].split(',').map(t => t.trim()) 
     const fn = steps[0]
@@ -224,19 +255,22 @@ async function processInclude(file, pm) {
 
     const dat = yaml.load(fs.readFileSync(fn))
     , newSteps = []
+    , vars = {}
     dat.steps.map(s => {
         // recursive resolution of includes
         // TODO: check for cyclic references to prevent stack overflow
-        if (typeof s === 'string') newSteps.push(...processInclude(s))
+        if (typeof s === 'string') {
+            if (!setVars(s, vars)) newSteps.push(...processInclude(s))
+        }
         else newSteps.push(s)
     })
-
+console.log('Vars', vars)
     if (!pm) return newSteps
     dat.steps = newSteps
 
     steps = steps.slice(1)
     if (steps.length < 1) {
-        dat.steps.map(step => makeStep(step, pm))
+        dat.steps.map(step => makeStep(step, pm, vars))
         return
     }
 
@@ -244,7 +278,7 @@ async function processInclude(file, pm) {
         let step
         if (isNumber(s)) step = dat.steps[+s - 1]
         else step = dat.steps.find(o => typeof o !== 'string' && Object.keys(o)[0] === s)
-        if (step) makeStep(step, pm)
+        if (step) makeStep(step, pm, vars)
     })
 }
 
@@ -255,3 +289,5 @@ function isNumber(n) {
 // yaml supports:
 // - include(filename, [steps]) in steps
 // - file(filename) shorthand in body.formdata
+
+// return loadYaml('test.yaml')
