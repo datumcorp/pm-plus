@@ -139,7 +139,7 @@ function makeStep(step, pm, vars) {
 }
 
 function addEvent(key, events, det) {
-    console.log('addevent', key, det[key] !== undefined)
+    // console.log('addevent', key, det[key] !== undefined)
     if (!det[key]) return
     events.push({
         listen: key,
@@ -227,10 +227,10 @@ async function processFile(text) {
 
 const rxSet = /set\(([A-Za-z,._\-0-9\ \/\=]*)\)/gm
 function setVars(str, obj) {
-    console.log('...', str)
-    // support clear() to clear variables
+    // console.log('...', str)
     const m = rxSet.exec(str)
-    if (!m || !m[1]) return
+    // support clear() to clear variables
+    if (!m || !m[1]) return clearVars(str, obj)
 
     const vars = m[1]
     vars.split(',').map(v => {
@@ -242,12 +242,25 @@ function setVars(str, obj) {
     return true
 }
 
+const rxClear = /clear\(([A-Za-z,._\-0-9\ \/\=]*)\)/gm
+function clearVars(str, obj) {
+    // console.log('... clear', str)
+    const m = rxClear.exec(str)
+    if (!m || !m[1]) return false
+    const vars = m[1]
+    if (vars.length)  vars.split(',').map(v => {
+        if (!v) return
+        delete obj[v.trim()]
+    })
+    else Object.keys(obj).map(k => delete obj[k]) // clear all
+    return true
+}
+
 const rxIncl = /include\(([A-Za-z,._\-0-9\ \/\=]*)\)/gm
 async function processInclude(file, pm) {
 // include(file, [step, step])
     console.log('...', file)
     const m = rxIncl.exec(file)
-    if (!m) console.log('xxx', file)
     if (!m[1]) return
     let steps = m[1].split(',').map(t => t.trim()) 
     const fn = steps[0]
@@ -264,7 +277,7 @@ async function processInclude(file, pm) {
         }
         else newSteps.push(s)
     })
-console.log('Vars', vars)
+
     if (!pm) return newSteps
     dat.steps = newSteps
 
