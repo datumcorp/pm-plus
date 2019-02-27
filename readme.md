@@ -21,3 +21,50 @@ steps:
         Content-Type: application/json
       body:
 ```
+
+instead of JSON
+
+```json
+{
+  "info": {
+    "name": "Sample Postman Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "A simple GET request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('expect response be 200', function () {",
+              "    pm.response.to.be.ok",
+              "})",
+              "pm.test('expect response json contain args', function () {",
+              "    pm.expect(pm.response.json().args).to.have.property('source')",
+              "      .and.equal('newman-sample-github-collection')",
+              "})"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "header": [],
+        "body": {},
+        "method": "GET",
+        "url": {
+          "raw": "https://postman-echo.com/get?source=newman-sample-github-collection",
+          "host": [
+            "https:"
+          ],
+          "path": [
+            "",
+            "postman-echo.com",
+            "get?source=newman-sample-github-collection"
+          ]
+        }
+      }
+    },...
+```

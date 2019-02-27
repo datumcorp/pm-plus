@@ -8,13 +8,13 @@
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "ssh://git@git.datumcorp.com:10034/datum/m4-stdpack.git"
+    "url": "https://github.com/datumcorp/pm-plus"
   },
   "author": "Datum ClearMind Sdn Bhd",
   "license": "MIT",
   "dependencies": {
     "chalk": "^2.4.2",
-    "js-yaml": "^3.12.1",
+    "js-yaml": "^3.12.2",
     "newman": "^4.4.0",
     "tiny-glob": "^0.2.6"
   }
