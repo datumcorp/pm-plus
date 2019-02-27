@@ -13,7 +13,9 @@
   "author": "Datum ClearMind Sdn Bhd",
   "license": "MIT",
   "dependencies": {
+    "chalk": "^2.4.2",
     "js-yaml": "^3.12.1",
+    "newman": "^4.4.0",
     "tiny-glob": "^0.2.6"
   }
 }

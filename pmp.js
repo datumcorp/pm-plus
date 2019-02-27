@@ -1,41 +1,74 @@
 #!/usr/bin/env node
 
-const glob = require('tiny-glob')
+const { promisify } = require('util')
+, glob = require('tiny-glob')
 , args = process.argv.slice(2)
+, chalk = require('chalk')
 , fs = require('fs')
-, { promisify } = require('util')
 , readAsync = promisify(fs.readFile)
 , writeAsync = promisify(fs.writeFile)
 , yaml = require('js-yaml')
 
-let ok = args.length === 2
-
 const commands = ['convert', 'run']
-if (ok) ok = commands.includes(args[0])
+, isRun = args[0] === 'run'
+, isConvert = args[0] === 'convert'
+//let ok = args.length
+let ok = isConvert && args.length === 2
+if (!ok) ok = isRun && (args.length === 2 || args.length === 3)
 // console.log(args)
 if (!ok) return console.error(`
     PM+ - arguments required
 
     Some examples:
     - pm+ convert *.(json|yaml)  convert yaml from/to postman collection
-    - pm+ run *.yaml             convert and run the postman via newman
+    - pm+ run *.yaml [URL]       run the yaml via newman on given URL as {{domain}}
+
+    WARNING: This utility will overwrite files without notice.
 `)
 
-const isRun = args[0] === 'run'
-, isConvert = args[0] === 'convert'
+
 glob(args[1]).then(async f => {
-    await f.reduce(async (p, f) => {
-        await p
-        if (isConvert && f.endsWith('.json')) return await loadJson(f)
-        else if ((isConvert || isRun) && f.endsWith('.yaml')) return await loadYaml(f)
-    }, Promise.resolve())
+    const env = {
+        values: [{
+            enabled: true,
+            key: 'domain',
+            value: args[2] || '',
+            type: 'text'
+        }]
+    }
+    , fromYaml = []
+    const files = await f.reduce(async (p, f) => {
+        p = await p
+        if (f.endsWith('.json')) {
+            if (isConvert) await loadJson(f)
+            p.push(f)
+        }
+        else if (f.endsWith('.yaml')) {
+            const fn = await loadYaml(f, isRun)
+            if (fn) {
+                p.push(fn)
+                fromYaml.push(fn)
+            }
+        }
+        return p
+    }, Promise.resolve([]))
+
+    if (isRun) run(env, files).then(totalErrors => {
+        // cleanup temp files
+        fromYaml.map(f => fs.unlinkSync(f))
+        console.log('')
+        if (totalErrors) console.error(` ${totalErrors} HARD errors found!`)
+        else console.info('Yay! All tests passed.')
+        process.exit(totalErrors ? 1 : 0)
+    })
 })
 
+const rxSchema = /\/v2.[0-9].0\/collection.json/g
 async function loadJson(fn) {
     let t = await readAsync(fn)
     try {
         const pm = JSON.parse(t)
-        let ok = pm.info && pm.info.schema && pm.info.schema.indexOf('/v2.1.0/') > -1
+        let ok = pm.info && pm.info.schema && rxSchema.test(pm.info.schema)
         if (ok) ok = Array.isArray(pm.item) && pm.item.length
         if (ok) ok = pm.item[0].request || pm.item[0].item
         if (ok) {
@@ -46,12 +79,12 @@ async function loadJson(fn) {
         else console.error(fn, 'Expected Postman ver 2.1.0 collection')
     }
     catch (err) {
-        console.error(fn, ':', err.message)
+        console.error(fn, ':', err.stack)
     }
 }
 
 
-async function loadYaml(fn) {
+async function loadYaml(fn, isRun) {
     let t = await readAsync(fn)
     try {
         // t = t.toString().replace(/`/g, '\\`')
@@ -74,11 +107,14 @@ async function loadYaml(fn) {
             makeStep(step, pm, vars)
         })
 
-        await writeAsync(`${fn}.json`, JSON.stringify(pm, null, 2))
+        const fn2 = `${isRun ? `${fn}_${+new Date()}` : fn.substr(0, fn.length - 5)}.json`
+        await writeAsync(fn2, JSON.stringify(pm, null, 2))
+        return fn2
     }
     catch (err) {
         console.error(fn, ':', err.stack)
     }
+    return null
 }
 
 function makeStep(step, pm, vars) {
@@ -116,7 +152,8 @@ function makeStep(step, pm, vars) {
     addEvent('test', event, det)
     // console.log('event', det.prequest, event)
 
-    const VERBS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'TRACE']
+    const VERBS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'TRACE', 'OPTIONS',
+        'COPY', 'LINK', 'UNLINK', 'PURGE', 'LOCK', 'UNLOCK', 'PROPFIND', 'VIEW']
     VERBS.map(v => {
         if (!det[v]) return
         const url = det[v].split('/')
@@ -158,7 +195,7 @@ async function fromPostman(dat) {
     dat.item.map(item => {
         // TODO: handle folder
         const evt = {}
-        item.event.map(e => {
+        if (item.event) item.event.map(e => {
             const s = e.script.exec.join('\n').replace(/\r/g, '')
             if (s.trim().length) evt[e.listen] = s
         })
@@ -184,7 +221,7 @@ async function fromPostman(dat) {
         }
 
         o[item.name] = {
-            [req.method]: req.url.raw,
+            [req.method]: req.url.raw || req.url,
             headers,
             body: req.body,
             ...evt,
@@ -298,9 +335,124 @@ async function processInclude(file, pm) {
 function isNumber(n) {
     return !isNaN(parseFloat(n)) && isFinite(n)
 }
-  
-// yaml supports:
-// - include(filename, [steps]) in steps
-// - file(filename) shorthand in body.formdata
+
+// ---------------
+
+async function runTest({ collection, environment }) {
+    const newman = require('newman')
+    return new Promise(done => {
+        newman.run({ collection, environment,
+            // bail: true,
+            reporters: ['cli'],
+            reporter: {
+                cli: {
+                    // noAssertions: true,
+                    noFailures: true,
+                    noSummary: true,
+                    // silent: true
+                }
+            }
+        })
+        .on('done', (err, summary) => {
+            // console.info(`   ${err ? chalk.red('✖') : chalk.green('✓')}  ${collection.info.name}  ${err ? chalk.red(err.name) : ''}`)
+            // console.error(summary.run.failures)
+            // summary.run.failures.map(fail => {
+            //     const e = fail.error
+            //     if (!e.test && e.message) console.error('  ', chalk.yellow(e.message))
+            // })
+            done(summary.run.failures.length)
+            // can we get header from here?
+            //console.log(summary)
+            // console.log(this)
+        })
+    })
+}
+
+function validate(c, colFile) {
+    let notGood = false, first = true
+    let items = c.item;
+    if (!c.info || !c.info.schema) throw Error('Invalid collection format - require postman collection v2.1')
+    items.map(o => {
+        let msg = ''
+        if (!o.request || !o.request.url) {
+            if (first) { console.log(''); first = false }
+            console.log(chalk.gray(' skipping   ' + o.name))
+            return false
+        }
+
+        if (o.request.body.mode === 'formdata') {
+            //Form data has file element
+            o.request.body.formdata
+            .filter(e => e.type === 'file')
+            .map(fdElem => {
+                let fileWOExt = colFile.slice(0, -5) // remove .json from filename
+                //let folderExits = fs.existsSync(`${path}/${fileWOExt}`);
+                const fn = `${fdElem.description}`
+                const fpath = `${_path}/${fileWOExt}`
+                const ffn = `${fpath}/${fn}`
+                let mockPathExists = fs.existsSync(fpath)
+                let mockFileExists = fs.existsSync(ffn)
+
+                console.log()
+                // Make folder for collection if it uses request body contains mock file
+                // And mock file exit
+                fdElem.enabled = false                    
+                if (mockFileExists) {
+                    fdElem.src = `${_path}/${fileWOExt}/${fdElem.description}`
+                    fdElem.enabled = true
+                }
+                else {
+                    msg += `   - File not found: ${fdElem.description}\npath (${fpath}): ${mockPathExists ? 'exists' : 'not exists'}, ffn: ${ffn}\n`;
+                }
+            })
+        }
+        
+        if (o.name.startsWith('http')) { msg += `   - add meaningful name\n` }
+
+        const url = o.request.url.raw || o.request.url
+        if (!url.startsWith('{{domain}}')) { msg += `   - {{domain}} not found in url\n` }
+
+        if (!o.event || !o.event.filter(ev => ev.listen === 'test').length) {
+            if (o.name.toLowerCase() !== 'login') msg += `   - No tests found!\n`
+        }
+        if (msg.length) {
+            msg = chalk.red(` ❗  ${o.name}\n`) + msg
+            if (first) { msg = '\n' + msg; first = false }
+            console.log(msg)
+            notGood = true
+        }
+    })
+    if (notGood) {
+        //console.error(issues)
+        return false
+    }
+    return true
+}
+
+function run(env, files) {
+    let errors = 0
+    return files.reduce((cur, file) => cur.then(_ => {
+        // we load collection using require
+        // for better validation and handling
+        let c = require(`${__dirname}/${file}`)
+        // , name = ''
+        // if (c && c.info) { name = c.info.name }
+        console.log(`\n${chalk.bold.underline.whiteBright(`## ${file}`)}`)
+        validate(c, file)
+
+        // run sequentially
+        return runTest({ collection: c, environment: env }).then(errs => {
+            errors += errs || 0
+        })
+    }), Promise.resolve(0))
+    .then(() => new Promise(done => {
+        // if (errors) console.error(`\n     ${chalk.bold.underline.red(`!!! ${errors} ERRORS !!!`)}`)
+        setTimeout(() => done(errors), 300)
+    }))
+}
+
 
 // return loadYaml('test.yaml')
+
+// ROADMAP
+// - convert CURL to YAML https://github.com/tj/parse-curl.js
