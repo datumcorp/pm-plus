@@ -8,17 +8,15 @@ const { promisify } = require('util')
 , yaml = require('js-yaml')
 , stdin = process.stdin
 
-if (!stdin.isTTY) {
-    let piped = ''
-    stdin.resume();
-    stdin.setEncoding('utf8');
-    stdin.on('data', data => piped += data)
-    stdin.on('end', _ => curl2Yaml(piped))
-    return
-}
-
 if (require.main === module) {
-
+    if (!stdin.isTTY) {
+        let piped = ''
+        stdin.resume();
+        stdin.setEncoding('utf8');
+        stdin.on('data', data => piped += data)
+        stdin.on('end', _ => curl2Yaml(piped))
+        return
+    }
     const isRun = arg.run || arg.r
     , isConvert = arg.convert || arg.c
 
