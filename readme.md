@@ -4,9 +4,12 @@ Productivity tools for those who worked on postman collections.
 
 This tool is designed to convert existing JSON (collection) files to YAML format, with a little restructuring of the schema.
 
-The end result is to have maintainable code which is easy to review and edit, without the need for the Postman App.
+### How To Use
 
-Also included some handy macros: `set, clear, include`
+Install via `npm i -g pm-plus` and then go to the directory with postman collections and then type `pm+ convert '*.json'`
+
+
+The end result is to have maintainable code which is easy to review and edit, without the need for the Postman App.
 
 ```yaml
 name: sample test file
@@ -68,3 +71,11 @@ instead of JSON
       }
     },...
 ```
+
+### Functionalities:
+
+- `pm+ convert pattern.(json|yaml)` convert between JSON and YAML format
+- `pm+ run pattern.(json|yaml) [URL]` run file in newman, optionally providing URL as `domain` variable
+- `pm+ < curl.txt` convert from curl command to YAML
+
+Also included some handy macros: `set, clear, include` for the YAML file.

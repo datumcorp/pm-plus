@@ -8,6 +8,45 @@ const { promisify } = require('util')
 , readAsync = promisify(fs.readFile)
 , writeAsync = promisify(fs.writeFile)
 , yaml = require('js-yaml')
+, stdin = process.stdin
+
+if (!stdin.isTTY) {
+    let piped = ''
+    stdin.resume();
+    stdin.setEncoding('utf8');
+    stdin.on('data', data => piped += data)
+    stdin.on('end', async _ => {
+        // console.log('done', `_${piped}_`)
+        const curl = require('./curl')
+        const p = curl.parse(piped)
+        // console.log(p)
+
+        const step = {
+            [p.method]: `{{domain}}${p.path}`,
+            headers: p.headers,
+            prerequest: '',
+            test: ''
+        }
+        if (p.data) step.body = { raw: p.data }
+
+        const pm = {
+            info: {
+                name: `From Curl`,
+                schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+            },
+            steps: [],
+        }
+        pm.steps.push({
+            [`${p.method} ${p.path}`]: step
+        })
+
+        const fn = `curl_${+new Date()}.yaml`
+        await writeAsync(fn, yaml.dump(pm))
+        console.log(`👍 ${fn} saved`)
+    })
+    return
+}
+
 
 const commands = ['convert', 'run']
 , isRun = args[0] === 'run'
@@ -15,7 +54,7 @@ const commands = ['convert', 'run']
 //let ok = args.length
 let ok = isConvert && args.length === 2
 if (!ok) ok = isRun && (args.length === 2 || args.length === 3)
-// console.log(args)
+
 if (!ok) return console.error(`
     PM+ - arguments required
 
@@ -32,7 +71,7 @@ glob(args[1]).then(async f => {
         values: [{
             enabled: true,
             key: 'domain',
-            value: args[2] || '',
+            value: args[2] || 'http://localhost:3000',
             type: 'text'
         }]
     }
@@ -72,14 +111,15 @@ async function loadJson(fn) {
         if (ok) ok = Array.isArray(pm.item) && pm.item.length
         if (ok) ok = pm.item[0].request || pm.item[0].item
         if (ok) {
-            console.log('processing ...', fn)
             const dat = await fromPostman(pm)
-            await writeAsync(`${fn.substr(0, fn.length - 5)}.yaml`, dat)
+            const newfn = `${fn.substr(0, fn.length - 5)}.yaml`
+            await writeAsync(newfn, dat)
+            console.log(`👍 ${newfn} saved`)
         }
         else console.error(fn, 'Expected Postman ver 2.1.0 collection')
     }
     catch (err) {
-        console.error(fn, ':', err.stack)
+        console.error(fn, err.stack)
     }
 }
 
@@ -434,7 +474,7 @@ function run(env, files) {
     return files.reduce((cur, file) => cur.then(_ => {
         // we load collection using require
         // for better validation and handling
-        let c = require(`${__dirname}/${file}`)
+        let c = require(`${process.cwd()}/${file}`)
         // , name = ''
         // if (c && c.info) { name = c.info.name }
         console.log(`\n${chalk.bold.underline.whiteBright(`## ${file}`)}`)
