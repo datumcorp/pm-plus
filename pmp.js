@@ -44,10 +44,10 @@ WARNING: This utility will overwrite files without notice.
     // pm+ docs
     // pm+ clean < curl
 
-    run(arg.r || arg.run || arg.c || arg.convert, { domain: arg.u, isConvert, isRun })
+    go(arg.r || arg.run || arg.c || arg.convert, { domain: arg.u, isConvert, isRun })
 }
 
-function run(pattern, { domain, isConvert, isRun }) {
+function go(pattern, { domain, isConvert, isRun }) {
     // console.log('run',{ pattern, domain, isConvert , isRun })
     const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
@@ -94,6 +94,13 @@ function run(pattern, { domain, isConvert, isRun }) {
     })    
 }
 
+function convert(pattern) {
+    return go(pattern, { isConvert: true })
+}
+
+function run(pattern, url) {
+    return go(pattern, { isRun: true, domain: url })
+}
 
 async function curl2Yaml(curlCommand) {
     const { isJsonContent } = require(`${__dirname}/lib/pmcollection`)
@@ -132,7 +139,8 @@ async function curl2Yaml(curlCommand) {
 
 module.exports = {
     curl2Yaml,
-    run
+    convert,
+    run    
 }
 // return loadYaml('test.yaml')
 
