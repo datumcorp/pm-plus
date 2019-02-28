@@ -8,6 +8,7 @@ This tool is designed to convert existing JSON (collection) files to YAML format
 
 Install via `npm i -g pm-plus` and then go to the directory with postman collections and then type `pm+ convert '*.json'`
 
+Or for development mode, git clone this repo and then run `npm i && npm link`
 
 The end result is to have maintainable code which is easy to review and edit, without the need for the Postman App.
 
