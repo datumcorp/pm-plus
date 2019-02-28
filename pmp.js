@@ -4,7 +4,6 @@ const { promisify } = require('util')
 , arg = require('yargs').argv
 , glob = require('tiny-glob')
 , fs = require('fs')
-, readAsync = promisify(fs.readFile)
 , writeAsync = promisify(fs.writeFile)
 , yaml = require('js-yaml')
 , stdin = process.stdin
@@ -18,10 +17,11 @@ if (!stdin.isTTY) {
     return
 }
 
-const isRun = arg.run || arg.r
-, isConvert = arg.convert || arg.c
-
 if (require.main === module) {
+
+    const isRun = arg.run || arg.r
+    , isConvert = arg.convert || arg.c
+
     let ok = isConvert  || isRun
     if (!ok || arg.h) return console.error(`
 PM+ - arguments required
@@ -44,17 +44,17 @@ WARNING: This utility will overwrite files without notice.
     // pm+ docs
     // pm+ clean < curl
 
-    runFiles(arg.r || arg.run || arg.c || arg.convert, arg.u, { isConvert, isRun })
+    run(arg.r || arg.run || arg.c || arg.convert, { domain: arg.u, isConvert, isRun })
 }
 
-function runFiles(pattern, domain, { isConvert, isRun }) {
+function run(pattern, { domain, isConvert, isRun }) {
     // console.log('run',{ pattern, domain, isConvert , isRun })
-    const { loadJson } = require('./lib/pmcollection')
+    const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
 
     glob(pattern).then(async f => {
         const fromYaml = []
-        return console.log(f.join('\n'))
+        // return console.log(f.join('\n'))
         const files = await f.reduce(async (p, f) => {
             p = await p
             if (f.endsWith('.json')) {
@@ -94,114 +94,11 @@ function runFiles(pattern, domain, { isConvert, isRun }) {
     })    
 }
 
-async function loadYaml(fn, isRun) {
-    const { processInclude, setVars } = require('./lib/macros')
-    let t = await readAsync(fn)
-    try {
-        // t = t.toString().replace(/`/g, '\\`')
-        // eval(`t = \`${t}\` `)
-        const dat = yaml.load(t)
-        , pm = {
-            info: {
-                name: dat.name,
-                schema: dat.schema
-            },
-            item: [],
-        }
-        , vars = {}
-        dat.steps.map(step => {
-            if (typeof step === 'string') {
-                if (setVars(step, vars)) return
-                // include(file, [step, step])
-                return processInclude(step, pm)
-            }
-            makeStep(step, pm, vars)
-        })
 
-        const fn2 = `${isRun ? `${fn}_${+new Date()}` : fn.substr(0, fn.length - 5)}.json`
-        await writeAsync(fn2, JSON.stringify(pm, null, 2))
-        return fn2
-    }
-    catch (err) {
-        console.error(fn, ':', err.stack)
-    }
-    return null
-}
-
-function makeStep(step, pm, vars) {
-    const det = Object.values(step)[0]
-    , fdata = det.body.formdata
-
-    delete det.body.mode
-    det.body.mode = Object.keys(det.body)[0]
-    if (Array.isArray(fdata)) {
-        det.body.formdata = fdata.map(r => {
-            if (typeof f !== 'string') return r
-            return processFile(r)
-        }).filter(r => r)
-    }
-    const request = {
-        header: Object.keys(det.headers).map(key => ({
-            key,
-            type: 'text',
-            value: det.headers[key]
-        })),
-        body: det.body
-    }
-    
-    if (vars) {
-        const presets = []
-        Object.keys(vars).map(k => {
-            let v = vars[k]
-            if (typeof v === 'string') v = `'${v}'`
-            presets.push(`pm.variables.set('${k}', ${v});`)
-        })
-        if (presets.length) det.prerequest = `${presets.join('\n')}\n${det.prerequest || ''}`
-    }
-    const event = []
-    addEvent('prerequest', event, det)
-    addEvent('test', event, det)
-    // console.log('event', det.prequest, event)
-
-    const VERBS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'TRACE', 'OPTIONS',
-        'COPY', 'LINK', 'UNLINK', 'PURGE', 'LOCK', 'UNLOCK', 'PROPFIND', 'VIEW']
-    VERBS.map(v => {
-        if (!det[v]) return
-        const url = det[v].split('/')
-        request.method = v
-        request.url = {
-            raw: det[v],
-            host: [url[0]],
-            path: url.slice(1)
-        }
-    })
-    const name = Object.keys(step)[0]
-    console.log('>>', name)
-    pm.item.push({
-        name,
-        event,
-        protocolProfileBehavior: det.protocolProfileBehavior,
-        request,
-        response: det.response
-    })
-}
-
-function addEvent(key, events, det) {
-    // console.log('addevent', key, det[key] !== undefined)
-    if (!det[key]) return
-    events.push({
-        listen: key,
-        script: {
-            exec: det[key].split('\n'),
-            type: "text/javascript"
-        }
-    })
-}
-
-async function curl2Yaml(piped) {
+async function curl2Yaml(curlCommand) {
     const { isJsonContent } = require(`${__dirname}/lib/pmcollection`)
     const curl = require('./lib/curl')
-    const p = curl.parse(piped)
+    const p = curl.parse(curlCommand)
     // console.log(p)
 
     const step = {
@@ -233,21 +130,10 @@ async function curl2Yaml(piped) {
     console.log(`👍 ${fn} saved`)
 }
 
-const rxFile = /file\(([A-Za-z,._\-0-9\ \/\=]*)\)/gm
-async function processFile(text) {
-    const m = rxFile.exec(text)
-    const file = m[1]
-    if (!file) return null
-
-    return {
-        key: 'file',
-        description: file,
-        type: 'file',
-        src: file
-    }
+module.exports = {
+    curl2Yaml,
+    run
 }
-
-module.exports = { runFiles }
 // return loadYaml('test.yaml')
 
 // ROADMAP

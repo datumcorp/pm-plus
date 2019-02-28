@@ -5,6 +5,7 @@
   "bin": {
     "pm+": "./pmp.js"
   },
+  "main": "pmp.js",
   "scripts": {},
   "publishConfig":{
     "registry":"https://registry.npmjs.org"
