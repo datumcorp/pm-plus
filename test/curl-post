@@ -1,0 +1,7 @@
+curl -X POST \
+  "https://www.website.com/api/resource" \
+  -H 'accept: application/json' \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: application/json' \
+  -H 'postman-token: 3aba9170-400b-10a5-1064-a29d2570d673' \
+  -d '{"lines":[{"acctid":"Oh2Dio51TfKrCICP8QXimA","taxId":"75yikYYkSuKo1UGgjn3ZDg","qty":8,"price":318},{"acctid":"hWntxBuTTWOsSE0cTEgW1g","taxId":"75yikYYkSuKo1UGgjn3ZDg","qty":4,"price":961},{"acctid":"qAB73ugRSG-mLTBTpcBkdg","taxId":"75yikYYkSuKo1UGgjn3ZDg","qty":17,"price":265},{"acctid":"P226WPYfQMy3SVHonNEXhw","taxId":"75yikYYkSuKo1UGgjn3ZDg","qty":16,"price":949},{"acctid":"P226WPYfQMy3SVHonNEXhw","taxId":"75yikYYkSuKo1UGgjn3ZDg","qty":14,"price":328}],"billInfo":"ehYl7Bp9RHKT8g6ipxz5yw","shipInfo":"ehYl7Bp9RHKT8g6ipxz5yw","folderId":"AAAAAwAAQACAAAAAAAAAAQ","date":"2019-02-16T01:44:17.149Z","typeId":"AAAAAgAAQACAAAAAAAAAAQ"}'
