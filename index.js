@@ -49,67 +49,68 @@ WARNING: This utility will overwrite files without notice.
 }
 
 // exclude -> string | regexp
-function go(pattern, { domain, isConvert, isRun, exclude }) {
+async function go(pattern, { domain, isConvert, isRun, exclude }) {
     // console.log('run',{ pattern, domain, isConvert , isRun })
     const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
+    const path = require('path')
 
-    glob(pattern).then(async f => {
-        const fromYaml = []
-        // return console.log(f.join('\n'))
-        const files = await f.filter(r => {
-            if (typeof exclude === 'string' && r.indexOf(exclude) > -1) return false
-            else if (exclude instanceof RegExp && exclude.test(r)) return false
-            return true
-        }).reduce(async (p, f) => {
-            p = await p
-            if (f.endsWith('.json')) {
-                if (isConvert) await loadJson(f)
-                p.push(f)
-            }
-            else if (f.endsWith('.yaml')) {
-                const fn = await loadYaml(f, isRun)
-                if (fn) {
-                    p.push(fn)
-                    fromYaml.push(fn)
-                }
-            }
-            return p
-        }, Promise.resolve([]))
-    
-        if (isRun) {
-            const env = {
-                values: [{
-                    enabled: true,
-                    key: 'domain',
-                    value: domain || 'http://localhost:3000',
-                    type: 'text'
-                }]
-            }
-
-            run(env, files).then(totalErrors => {
-                // cleanup temp files
-                fromYaml.map(f => fs.unlinkSync(f))
-                console.log('')
-                if (totalErrors) console.error(` ${totalErrors} HARD errors found!`)
-                else if (files.length) console.info('Yay! All tests passed.')
-                else console.warn('Nothing to run?')
-                process.exit(totalErrors ? 1 : 0)
-            })
+    const f = await glob(pattern)
+    const fromYaml = []
+    // return console.log(f.join('\n'))
+    const files = await f.filter(r => {
+        // console.log(r)
+        if (typeof exclude === 'string' && r.indexOf(exclude) > -1) return false
+        else if (exclude instanceof RegExp && exclude.test(r)) return false
+        return true
+    }).reduce(async (p, f) => {
+        p = await p
+        if (f.endsWith('.json')) {
+            if (isConvert) await loadJson(f)
+            p.push(f)
         }
-    })    
+        else if (f.endsWith('.yaml')) {
+            const fn = await loadYaml(f, isRun)
+            if (fn) {
+                p.push(fn)
+                fromYaml.push(fn)
+            }
+        }
+        return p
+    }, Promise.resolve([]))
+
+    if (isRun) {
+        const env = {
+            values: [{
+                enabled: true,
+                key: 'domain',
+                value: domain || 'http://localhost:3000',
+                type: 'text'
+            }]
+        }
+
+        run(env, files).then(totalErrors => {
+            // cleanup temp files
+            fromYaml.map(f => fs.unlinkSync(f))
+            console.log('')
+            if (totalErrors) console.error(` ${totalErrors} HARD errors found!`)
+            else if (files.length) console.info('Yay! All tests passed.')
+            else console.warn('Nothing to run?')
+            process.exit(totalErrors ? 1 : 0)
+        })
+    }
 }
 
 function convert(pattern) {
     return go(pattern, { isConvert: true })
 }
 
-function run(pattern, url) {
-    return go(pattern, { isRun: true, domain: url })
+function run(pattern, { url, exclude }) {
+    return go(pattern, { isRun: true, domain: url, exclude })
 }
 
 async function curl2Yaml(curlCommand) {
-    const { isJsonContent, makeYaml } = require(`${__dirname}/lib/pmcollection`)
+    const { isJsonContent, makeYaml } = require(`./lib/pmcollection`)
     const curl = require('./lib/curl')
     const p = curl.parse(curlCommand)
     // console.log(p)

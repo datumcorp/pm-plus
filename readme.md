@@ -94,8 +94,11 @@ import { convert, run } from 'pm-plus'
 
 convert('*.json').then(...)
 
-run('*.json', 'https://...').then(...)
+run('*.json', { url: 'https://...', exclude: 'string | regex' }).then(...)
 ```
+
+- exclude (optional): to filter files from the glob pattern based on string (contains) or regex
+- url (optional): behaves the same as in command line
 
 ### License
 
