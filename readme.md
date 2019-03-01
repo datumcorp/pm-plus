@@ -13,17 +13,22 @@ Or for development mode, git clone this repo and then run `npm i && npm link`
 The end result is to have maintainable code which is easy to review and edit, without the need for the Postman App.
 
 ```yaml
-name: sample test file
-schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+name: Sample Postman Collection
+description: A sample collection to demonstrate collections as a set of related requests
+ver: 1.0.0
 steps:
-  - set(username = admin, age = 1)
-  - include(common-tests.yaml, login)
-  - clear()
-  - other steps:
-      GET: '{{domain}}/f/{{newFileId}}/meta'
-      headers:
-        Content-Type: application/json
-      body:
+  - A simple GET request:
+      GET: 'https://postman-echo.com/get?source=newman-sample-github-collection'
+      headers: {}
+      body: {}
+      test: |-
+        pm.test('expect response be 200', function () {
+            pm.response.to.be.ok
+        })
+        pm.test('expect response json contain args', function () {
+            pm.expect(pm.response.json().args).to.have.property('source')
+              .and.equal('newman-sample-github-collection')
+        })
 ```
 
 instead of JSON
@@ -73,10 +78,25 @@ instead of JSON
     },...
 ```
 
-### Functionalities:
+### Functionalities
 
 - `pm+ convert pattern.(json|yaml)` convert between JSON and YAML format
 - `pm+ run pattern.(json|yaml) [URL]` run file in newman, optionally providing URL as `domain` variable
 - `pm+ < curl.txt` convert from curl command to YAML
 
 Also included some handy macros: `set, clear, include` for the YAML file.
+
+
+### Using as Module
+
+```js
+import { convert, run } from 'pm-plus'
+
+convert('*.json').then(...)
+
+run('*.json', 'https://...').then(...)
+```
+
+### License
+
+[MIT](LICENSE)

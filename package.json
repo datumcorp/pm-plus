@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "Postman collection simplified, in YAML",
   "bin": {
-    "pm+": "./pmp.js"
+    "pm+": "./index.js"
   },
-  "main": "pmp.js",
+  "main": "index.js",
   "scripts": {},
-  "publishConfig":{
-    "registry":"https://registry.npmjs.org"
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
   },
   "repository": {
     "type": "git",

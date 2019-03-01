@@ -5,7 +5,6 @@ const { promisify } = require('util')
 , glob = require('tiny-glob')
 , fs = require('fs')
 , writeAsync = promisify(fs.writeFile)
-, yaml = require('js-yaml')
 , stdin = process.stdin
 
 if (require.main === module) {
@@ -42,10 +41,15 @@ WARNING: This utility will overwrite files without notice.
     // pm+ docs
     // pm+ clean < curl
 
-    go(arg.r || arg.run || arg.c || arg.convert, { domain: arg.u, isConvert, isRun })
+    go(arg.r || arg.run || arg.c || arg.convert, {
+        domain: arg.u,
+        exclude: arg.exclude,
+        isConvert, isRun
+    })
 }
 
-function go(pattern, { domain, isConvert, isRun }) {
+// exclude -> string | regexp
+function go(pattern, { domain, isConvert, isRun, exclude }) {
     // console.log('run',{ pattern, domain, isConvert , isRun })
     const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
@@ -53,7 +57,11 @@ function go(pattern, { domain, isConvert, isRun }) {
     glob(pattern).then(async f => {
         const fromYaml = []
         // return console.log(f.join('\n'))
-        const files = await f.reduce(async (p, f) => {
+        const files = await f.filter(r => {
+            if (typeof exclude === 'string' && r.indexOf(exclude) > -1) return false
+            else if (exclude instanceof RegExp && exclude.test(r)) return false
+            return true
+        }).reduce(async (p, f) => {
             p = await p
             if (f.endsWith('.json')) {
                 if (isConvert) await loadJson(f)
@@ -78,7 +86,7 @@ function go(pattern, { domain, isConvert, isRun }) {
                     type: 'text'
                 }]
             }
-        
+
             run(env, files).then(totalErrors => {
                 // cleanup temp files
                 fromYaml.map(f => fs.unlinkSync(f))
@@ -101,7 +109,7 @@ function run(pattern, url) {
 }
 
 async function curl2Yaml(curlCommand) {
-    const { isJsonContent } = require(`${__dirname}/lib/pmcollection`)
+    const { isJsonContent, makeYaml } = require(`${__dirname}/lib/pmcollection`)
     const curl = require('./lib/curl')
     const p = curl.parse(curlCommand)
     // console.log(p)
@@ -119,20 +127,15 @@ async function curl2Yaml(curlCommand) {
         step.body = { raw: p.data }
     }
 
-    const pm = {
-        info: {
-            name: `From Curl`,
-            schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
-        },
-        steps: [],
-    }
-    pm.steps.push({
-        [`${p.method} ${p.path}`]: step
+    const dump = makeYaml({
+        name: `From Curl`,
+        steps: [{
+            [`${p.method} ${p.path}`]: step
+        }]
     })
-
     const fn = `curl_${+new Date()}.yaml`
-    await writeAsync(fn, yaml.dump(pm))
-    console.log(`👍 ${fn} saved`)
+    await writeAsync(fn, dump)
+    console.log(`👍  ${fn} saved`)
 }
 
 module.exports = {
