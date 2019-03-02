@@ -49,7 +49,7 @@ WARNING: This utility will overwrite files without notice.
 }
 
 // exclude -> string | regexp
-async function go(pattern, { domain, isConvert, isRun, exclude }) {
+async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
     // console.log('run',{ pattern, domain, isConvert , isRun })
     const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
@@ -89,24 +89,25 @@ async function go(pattern, { domain, isConvert, isRun, exclude }) {
             }]
         }
 
-        run(env, files).then(totalErrors => {
+        return run(env, files).then(totalErrors => {
             // cleanup temp files
             fromYaml.map(f => fs.unlinkSync(f))
             console.log('')
             if (totalErrors) console.error(` ${totalErrors} HARD errors found!`)
             else if (files.length) console.info('Yay! All tests passed.')
             else console.warn('Nothing to run?')
-            process.exit(totalErrors ? 1 : 0)
+            if (!returnValue) process.exit(totalErrors ? 1 : 0)
+            return totalErrors
         })
     }
 }
 
 function convert(pattern) {
-    return go(pattern, { isConvert: true })
+    return go(pattern, { isConvert: true, returnValue: true })
 }
 
 function run(pattern, { url, exclude }) {
-    return go(pattern, { isRun: true, domain: url, exclude })
+    return go(pattern, { isRun: true, domain: url, exclude, returnValue: true })
 }
 
 async function curl2Yaml(curlCommand) {
