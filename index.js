@@ -4,6 +4,7 @@ const { promisify } = require('util')
 , arg = require('yargs').argv
 , glob = require('tiny-glob')
 , fs = require('fs')
+, chalk = require('chalk')
 , writeAsync = promisify(fs.writeFile)
 , stdin = process.stdin
 
@@ -20,20 +21,24 @@ if (require.main === module) {
     , isConvert = arg.convert || arg.c
 
     let ok = isConvert  || isRun
-    if (!ok || arg.h) return console.error(`
-PM+ - arguments required
+    if (!ok || arg.h) return console.log(`
+${chalk.bold.underline.greenBright(`PM+ - arguments required`)}
 
-Some examples:
-- pm+ --convert "*.(json|yaml)"  convert yaml from/to postman collection
-- pm+ --run "file" [-u URL]      run newman tests on given URL as {{domain}}
+To convert files:
+- pm+ --convert "*.(json|yaml)"
 
+To run tests:
+- pm+ --run "file|pattern" [--exclude "pattern"] [-u URL]
+
+* run newman tests on given URL as {{domain}}
 * URL defaults to http://localhost:3000
 
 Shorthands:
 -c --convert
 -r --run
+-x --exclude
 
-WARNING: This utility will overwrite files without notice.
+${chalk.bold.yellowBright(`WARNING:`)} This utility will overwrite files without notice.
 `)
 
     // tpl - nunjucks template for tests functions
@@ -41,11 +46,16 @@ WARNING: This utility will overwrite files without notice.
     // pm+ docs
     // pm+ clean < curl
 
-    go(arg.r || arg.run || arg.c || arg.convert, {
+    const opts = {
         domain: arg.u,
-        exclude: arg.exclude,
+        exclude: arg.x || arg.exclude,
         isConvert, isRun
-    })
+    }
+    if (opts.exclude && opts.exclude.startsWith('/') && opts.exclude.endsWith('/')) {
+        const { trimChar } = require('./lib/curl')    
+        opts.exclude = RegExp(trimChar(opts.exclude,'/'))
+    }
+    go(arg.r || arg.run || arg.c || arg.convert, opts)
 }
 
 // exclude -> string | regexp
@@ -53,7 +63,6 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
     // console.log('run',{ pattern, domain, isConvert , isRun })
     const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
-    const path = require('path')
 
     const f = await glob(pattern)
     const fromYaml = []
@@ -149,3 +158,4 @@ module.exports = {
 
 // ROADMAP
 // - convert CURL to YAML https://github.com/tj/parse-curl.js
+// - add sequence tests
