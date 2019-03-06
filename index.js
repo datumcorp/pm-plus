@@ -102,10 +102,12 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
             // cleanup temp files
             fromYaml.map(f => fs.unlinkSync(f))
             console.log('')
-            if (totalErrors) console.error(` ${totalErrors} HARD errors found!`)
-            else if (files.length) console.info('Yay! All tests passed.')
-            else console.warn('Nothing to run?')
-            if (!returnValue) process.exit(totalErrors ? 1 : 0)
+            if (!returnValue) {
+                if (totalErrors) console.error(`${totalErrors} HARD errors found!`)
+                else if (files.length) console.info('Yay! All tests passed.')
+                else console.warn('Nothing to run?')
+                process.exit(totalErrors ? 1 : 0)
+            }
             return totalErrors
         })
     }
@@ -152,7 +154,7 @@ async function curl2Yaml(curlCommand) {
 module.exports = {
     curl2Yaml,
     convert,
-    run    
+    run
 }
 // return loadYaml('test.yaml')
 
