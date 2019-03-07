@@ -60,7 +60,7 @@ ${chalk.bold.yellowBright(`WARNING:`)} This utility will overwrite files without
 
 // exclude -> string | regexp
 async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
-    // console.log('run',{ pattern, domain, isConvert , isRun })
+    console.log('start', { pattern, domain, exclude })
     const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
 
@@ -101,8 +101,8 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
         return run(env, files).then(totalErrors => {
             // cleanup temp files
             fromYaml.map(f => fs.unlinkSync(f))
-            console.log('')
             if (!returnValue) {
+                console.log('')
                 if (totalErrors) console.error(`${totalErrors} HARD errors found!`)
                 else if (files.length) console.info('Yay! All tests passed.')
                 else console.warn('Nothing to run?')
@@ -113,12 +113,12 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
     }
 }
 
-function convert(pattern) {
-    return go(pattern, { isConvert: true, returnValue: true })
+async function convert(pattern) {
+    return await go(pattern, { isConvert: true, returnValue: true })
 }
 
-function run(pattern, { url, exclude }) {
-    return go(pattern, { isRun: true, domain: url, exclude, returnValue: true })
+async function run(pattern, { url, exclude }) {
+    return await go(pattern, { isRun: true, domain: url, exclude, returnValue: true })
 }
 
 async function curl2Yaml(curlCommand) {
