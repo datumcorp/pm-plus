@@ -60,7 +60,7 @@ ${chalk.bold.yellowBright(`WARNING:`)} This utility will overwrite files without
 
 // exclude -> string | regexp
 async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
-    console.log('start', { pattern, domain, exclude })
+    // console.log('start', { pattern, domain, exclude })
     const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
 
