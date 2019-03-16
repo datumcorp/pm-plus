@@ -7,6 +7,7 @@ const { promisify } = require('util')
 , chalk = require('chalk')
 , writeAsync = promisify(fs.writeFile)
 , stdin = process.stdin
+, cleanups = []
 
 if (require.main === module) {
     if (!stdin.isTTY) {
@@ -41,6 +42,25 @@ Shorthands:
 ${chalk.bold.yellowBright(`WARNING:`)} This utility will overwrite files without notice.
 `)
 
+    if (process.platform === "win32") {
+        require("readline")
+        .createInterface({
+            input: process.stdin,
+            output: process.stdout
+        })
+        .on('SIGINT', _ => process.emit('SIGINT'))
+    }
+
+    process.on('SIGINT', _ => {
+        console.log('Cleanup', cleanups.join(' '))
+        while (cleanups.length > 0) {
+            const f = cleanups.splice(0, 1)[0]
+            fs.unlinkSync(f)
+        }
+        //graceful shutdown
+        process.exit()
+    })
+
     // tpl - nunjucks template for tests functions
     // @include(tests from nunjucks template)
     // pm+ docs
@@ -64,8 +84,10 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
     const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
 
+    // default exclude files begins with !
+    if (!exclude) exclude = /\!.*/
+
     const f = await glob(pattern)
-    const fromYaml = []
     // return console.log(f.join('\n'))
     const files = await f.filter(r => {
         // console.log(r)
@@ -82,7 +104,7 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
             const fn = await loadYaml(f, isRun)
             if (fn) {
                 p.push(fn)
-                fromYaml.push(fn)
+                cleanups.push(fn)
             }
         }
         return p
@@ -100,7 +122,11 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
 
         return run(env, files).then(totalErrors => {
             // cleanup temp files
-            fromYaml.map(f => fs.unlinkSync(f))
+            console.log('Cleanup', cleanups.join(' '))
+            while (cleanups.length > 0) {
+                const f = cleanups.splice(0, 1)[0]
+                fs.unlinkSync(f)
+            }
             if (!returnValue) {
                 console.log('')
                 if (totalErrors) console.error(`${totalErrors} HARD errors found!`)
