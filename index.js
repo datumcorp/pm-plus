@@ -81,6 +81,7 @@ ${chalk.bold.yellowBright(`WARNING:`)} This utility will overwrite files without
 // exclude -> string | regexp
 async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
     // console.log('start', { pattern, domain, exclude })
+    const t = +new Date()
     const { loadJson, loadYaml } = require('./lib/pmcollection')
     const { run } = require('./lib/runner')
 
@@ -120,21 +121,28 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
             }]
         }
 
-        return run(env, files).then(totalErrors => {
+        return run(env, files).then(errors => {
             // cleanup temp files
-            console.log('Cleanup', cleanups.join(' '))
+            console.log('\nCleanups')
             while (cleanups.length > 0) {
                 const f = cleanups.splice(0, 1)[0]
+                console.log(' -', f)
                 fs.unlinkSync(f)
             }
             if (!returnValue) {
                 console.log('')
-                if (totalErrors) console.error(`${totalErrors} HARD errors found!`)
-                else if (files.length) console.info('Yay! All tests passed.')
+                if (files.length) console.log(`Took ${+new Date() - t}ms for ${files.length} files`)
+                if (errors.total) {
+                    console.error(chalk.yellow(`${errors.total} errors found!`))
+                    errors.files.map(f => console.log(' -', f.total ? chalk.red(f.total) : '✔️ ', f.name))
+                }
+                else if (files.length) {
+                    console.info(chalk.greenBright('👍  Yay! All tests passed.'))
+                }
                 else console.warn('Nothing to run?')
-                process.exit(totalErrors ? 1 : 0)
+                process.exit(errors ? 1 : 0)
             }
-            return totalErrors
+            return errors
         })
     }
 }
