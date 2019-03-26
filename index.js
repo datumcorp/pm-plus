@@ -86,7 +86,7 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
     const { run } = require('./lib/runner')
 
     // default exclude files begins with !
-    if (!exclude) exclude = /\!.*/
+    if (!exclude && !pattern.startsWith('!')) exclude = /\!.*/
 
     const f = await glob(pattern)
     // return console.log(f.join('\n'))
@@ -123,7 +123,7 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
 
         return run(env, files).then(errors => {
             // cleanup temp files
-            console.log('\nCleanups')
+            if (cleanups.length) console.log('\nCleanups')
             while (cleanups.length > 0) {
                 const f = cleanups.splice(0, 1)[0]
                 console.log(' -', f)
