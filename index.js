@@ -195,3 +195,4 @@ module.exports = {
 // ROADMAP
 // - convert CURL to YAML https://github.com/tj/parse-curl.js
 // - add sequence tests
+// - add yaml test - template
