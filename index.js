@@ -123,10 +123,10 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
 
         return run(env, files).then(errors => {
             // cleanup temp files
-            if (cleanups.length) console.log('\nCleanups')
+            // if (cleanups.length) console.log('\nCleanups')
             while (cleanups.length > 0) {
                 const f = cleanups.splice(0, 1)[0]
-                console.log(' -', f)
+                // console.log(' -', f)
                 fs.unlinkSync(f)
             }
             if (!returnValue) {
@@ -134,7 +134,10 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
                 if (files.length) console.log(`Took ${+new Date() - t}ms for ${files.length} files`)
                 if (errors.total) {
                     console.error(chalk.yellow(`${errors.total} errors found!`))
-                    errors.files.map(f => console.log(' -', f.total ? chalk.red(f.total) : '✔️ ', f.name))
+                    errors.files.map(f =>  {
+                        if (!f.total) return
+                        console.log(' -', f.total ? chalk.red(f.total) : '✔️ ', f.name)
+                    })
                 }
                 else if (files.length) {
                     console.info(chalk.greenBright('👍  Yay! All tests passed.'))
