@@ -52,7 +52,7 @@ ${chalk.bold.yellowBright(`WARNING:`)} This utility will overwrite files without
     }
 
     process.on('SIGINT', _ => {
-        console.log('Cleanup', cleanups.join(' '))
+        // console.log('Cleanup', cleanups.join(' '))
         while (cleanups.length > 0) {
             const f = cleanups.splice(0, 1)[0]
             fs.unlinkSync(f)
