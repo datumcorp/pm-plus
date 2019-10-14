@@ -19,9 +19,9 @@
   "dependencies": {
     "chalk": "^2.4.2",
     "js-yaml": "^3.13.1",
-    "newman": "^4.5.4",
+    "newman": "^4.5.5",
     "tiny-glob": "^0.2.6",
     "url": "^0.11.0",
-    "yargs": "^13.2.2"
+    "yargs": "^14.2.0"
   }
 }
