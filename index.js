@@ -32,12 +32,14 @@ To run tests:
 - pm+ --run "file|pattern" [--exclude "pattern"] [-u URL]
 
 * run newman tests on given URL as {{domain}}
-* URL defaults to http://localhost:3000
+* URL defaults to ${chalk.yellowBright(process.env.PMURL || 'http://localhost:3000')}
+  (use "set PMURL=https://..." or "unset PMURL")
 
 Shorthands:
 -c --convert
 -r --run
 -x --exclude
+
 
 ${chalk.bold.yellowBright(`WARNING:`)} This utility will overwrite files without notice.
 `)
@@ -67,12 +69,12 @@ ${chalk.bold.yellowBright(`WARNING:`)} This utility will overwrite files without
     // pm+ clean < curl
 
     const opts = {
-        domain: arg.u,
+        domain: arg.u || process.env.PMURL,
         exclude: arg.x || arg.exclude,
         isConvert, isRun
     }
     if (opts.exclude && opts.exclude.startsWith('/') && opts.exclude.endsWith('/')) {
-        const { trimChar } = require('./lib/curl')    
+        const { trimChar } = require('./lib/curl')
         opts.exclude = RegExp(trimChar(opts.exclude,'/'))
     }
     go(arg.r || arg.run || arg.c || arg.convert, opts)
@@ -136,7 +138,15 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
                     console.error(chalk.yellow(`${errors.total} errors found!`))
                     errors.files.map(f =>  {
                         if (!f.total) return
-                        console.log(' -', f.total ? chalk.red(f.total) : '✔️ ', f.name)
+                        console.log(' -', f.total ? '❌ ' : '✔️ ', f.name)
+                        // if (f.fails)
+                        let lastSrc = ''
+                        f.fails.map(ff => {
+                            const src = ff.source.name
+                            if (lastSrc === src) return
+                            lastSrc = src
+                            console.log('  •', chalk.yellowBright(src))
+                        })
                     })
                 }
                 else if (files.length) {
