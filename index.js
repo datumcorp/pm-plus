@@ -8,6 +8,9 @@ const { promisify } = require('util')
 , writeAsync = promisify(fs.writeFile)
 , stdin = process.stdin
 , cleanups = []
+, pkg = require('./package.json')
+
+console.log(chalk.bold.whiteBright(`pm+ v${pkg.version}`))
 
 if (require.main === module) {
     if (!stdin.isTTY) {
