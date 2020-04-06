@@ -90,6 +90,53 @@ instead of JSON
 
 Also included some handy macros: `set, clear, include` for the YAML file.
 
+List the steps in a test file
+`pm+ -l file `
+
+Run specific steps, not all steps in a file
+`pm+ -r file -s=[1,2,3]`
+
+### Variables
+
+`set()` step
+```yaml
+  - set(variable=value)
+```
+
+`clear()` step - to clear the variable set earlier
+```yaml
+  - clear()  # clears all
+  - clear(v1, v2) # only clear v1 and v2
+```
+
+
+`RUN()` step
+```yaml
+  - RUN(file):  # no need .yaml or .json
+      steps:
+        - 1  # by index, starts with step 1
+        - Name of step
+```
+
+### Shared Modules
+
+Tired of writing the same file and postman not allowing to require external files?
+
+We've added `include` directive support in steps.
+
+```yaml
+  - Login as Admin:
+      POST: '{{domain}}/api/user/login'
+      headers:
+        Content-Type: application/json
+      include:
+        - path/file1.js
+        - path/file2.js
+      prerequest: ...
+```
+
+The included files must be javascript files which will be added to the `prerequest` and `test` scripts.
+
 
 ### Using as Module
 
