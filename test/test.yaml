@@ -1,0 +1,37 @@
+name: Test PM+ File
+description: Use pm+ -c thisfile.yaml to convert it to JSON
+ver: 1.0.0
+steps:
+  - A simple GET request:
+      GET: 'https://postman-echo.com/get?source=newman-sample-github-collection'
+      headers: {}
+      body: {}
+      include:
+        - shared.js
+        - dir1/mod.js
+      test: |-
+        pm.test('expect response be 200', function () {
+            pm.response.to.be.ok
+        })
+        pm.test('expect response json contain args', function () {
+            pm.expect(pm.response.json().args).to.have.property('source')
+              .and.equal('newman-sample-github-collection')
+        })
+      urlvars: {}
+  - A simple POST request:
+      POST: 'https://postman-echo.com/post'
+      headers:
+        Content-Type: text/plain
+      body:
+        raw: Duis posuere augue vel cursus pharetra. In luctus a ex nec pretium...
+      test: |-
+        //
+  - A simple POST request with JSON body:
+      POST: 'https://postman-echo.com/post'
+      headers:
+        Content-Type: application/json
+      body:
+        raw: |-
+          {
+            "text": "Duis posuere augue vel cursus pharetra. In luctus a ex nec pretium..."
+          }
