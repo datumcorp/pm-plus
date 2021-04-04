@@ -20,7 +20,7 @@
     "chalk": "^3.0.0",
     "content-disposition": "^0.5.3",
     "js-yaml": "^3.13.1",
-    "newman": "^4.5.7",
+    "newman": "^5.2.2",
     "tiny-glob": "^0.2.6",
     "url": "^0.11.0",
     "yargs": "^15.1.0"
