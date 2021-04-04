@@ -1,9 +1,9 @@
 {
   "name": "pm-plus",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "Postman collection simplified, in YAML",
   "bin": {
-    "pm+": "./index.js"
+    "pm+": "index.js"
   },
   "main": "index.js",
   "scripts": {},
