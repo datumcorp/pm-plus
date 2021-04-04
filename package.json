@@ -8,6 +8,7 @@
   "main": "index.js",
   "scripts": {},
   "publishConfig": {
+    "cache": "~/.npm",
     "registry": "https://registry.npmjs.org"
   },
   "repository": {
