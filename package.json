@@ -18,12 +18,12 @@
   "author": "Datum ClearMind Sdn Bhd",
   "license": "MIT",
   "dependencies": {
-    "chalk": "^3.0.0",
+    "chalk": "^4.1.2",
     "content-disposition": "^0.5.3",
     "js-yaml": "^4.1.0",
     "newman": "^5.2.4",
     "tiny-glob": "^0.2.9",
     "url": "^0.11.0",
-    "yargs": "^15.1.0"
+    "yargs": "^17.1.1"
   }
 }
