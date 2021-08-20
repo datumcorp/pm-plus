@@ -10,7 +10,7 @@ const { promisify } = require('util')
 , cleanups = []
 , pkg = require('./package.json')
 
-console.log(chalk.bold.whiteBright(`pm+ v${pkg.version}`))
+if (stdin.isTTY) console.log(chalk.bold.whiteBright(`pm+ v${pkg.version}`))
 
 if (require.main === module) {
     if (!stdin.isTTY) {
@@ -146,9 +146,11 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
                         let lastSrc = ''
                         f.fails.map(ff => {
                             const src = ff.source.name
-                            if (lastSrc === src) return
-                            lastSrc = src
-                            console.log('  •', chalk.yellowBright(src))
+                            if (lastSrc !== src) {
+                                lastSrc = src
+                                console.log('  •', chalk.yellowBright(src))
+                            }
+                            console.log(chalk.redBright('  ⓧ ->'), ff.error.test || ff.error.message)
                         })
                     })
                 }
@@ -175,7 +177,14 @@ async function curl2Yaml(curlCommand) {
     const { isJsonContent, makeYaml } = require(`./lib/pmcollection`)
     const curl = require('./lib/curl')
     const p = curl.parse(curlCommand)
-    // console.log(p)
+    , cleanHeaders = ['accept-language', 'authority', 'origin', 'cookie', 'user-agent']
+    , cleaned = {}
+
+    Object.keys(p.headers).map(k => {
+        if (k.startsWith('sec-') || cleanHeaders.includes(k)) return
+        cleaned[k] = p.headers[k]
+    })
+    p.headers = cleaned
 
     const step = {
         [p.method]: `{{domain}}${p.path}`,
@@ -191,14 +200,15 @@ async function curl2Yaml(curlCommand) {
     }
 
     const dump = makeYaml({
-        name: `From Curl`,
+        name: `curl_${+new Date()}`,
         steps: [{
-            [`${p.method} ${p.path}`]: step
+            [`Give this request a name`]: step
         }]
     })
-    const fn = `curl_${+new Date()}.yaml`
-    await writeAsync(fn, dump)
-    console.log(`👍  ${fn} saved`)
+    console.log(dump)
+    // const fn = `curl_${+new Date()}.yaml`
+    // await writeAsync(fn, dump)
+    // console.log(`👍  ${fn} saved`)
 }
 
 module.exports = {
