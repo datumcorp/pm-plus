@@ -150,7 +150,7 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
                                 lastSrc = src
                                 console.log('  •', chalk.yellowBright(src))
                             }
-                            console.log(chalk.redBright('  ⓧ ->'), ff.error.test || ff.error.message)
+                            console.log(chalk.redBright('    ⓧ ->'), ff.error.test || ff.error.message)
                         })
                     })
                 }
