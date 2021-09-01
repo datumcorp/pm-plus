@@ -158,6 +158,14 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
                     console.info(chalk.greenBright('👍  Yay! All tests passed.'))
                 }
                 else console.warn('Nothing to run?')
+
+                let tot = 0
+                errors.files.map(f => {
+                    // console.log('  >>>', f.runs)
+                    if (f.runs && f.runs.tests)
+                        tot += f.runs.tests.total || 0
+                })
+                console.log('\n', '  TOTAL:', tot, 'tests processed', '\n')
                 process.exit(errors ? 1 : 0)
             }
             return errors
@@ -181,16 +189,15 @@ async function curl2Yaml(curlCommand) {
     , cleaned = {}
 
     Object.keys(p.headers).map(k => {
-        if (k.startsWith('sec-') || cleanHeaders.includes(k)) return
-        cleaned[k] = p.headers[k]
+        if (k.startsWith('sec-') || cleanHeaders.includes(k.toLowerCase())) return
+        if (p.headers[k]) cleaned[k] = p.headers[k]
     })
     p.headers = cleaned
 
     const step = {
         [p.method]: `{{domain}}${p.path}`,
         headers: p.headers,
-        prerequest: '',
-        test: ''
+        prerequest: ''
     }
     if (p.data) {
         if (isJsonContent(p.headers)) {
@@ -198,6 +205,8 @@ async function curl2Yaml(curlCommand) {
         }
         step.body = { raw: p.data }
     }
+    // JS trick to append key at bottom of object
+    step.test = `console.log(JSON.parse(responseBody))\ntest['Test Name'] = true`
 
     const dump = makeYaml({
         name: `curl_${+new Date()}`,
