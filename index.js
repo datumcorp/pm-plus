@@ -91,7 +91,7 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
     const { run } = require('./lib/runner')
 
     // default exclude files begins with !
-    if (!exclude && !pattern.startsWith('!')) exclude = /\!.*/
+    // if (!exclude && !pattern.startsWith('!')) exclude = /\!.*/
 
     const f = await glob(pattern)
     // return console.log(f.join('\n'))
@@ -206,7 +206,7 @@ async function curl2Yaml(curlCommand) {
         step.body = { raw: p.data }
     }
     // JS trick to append key at bottom of object
-    step.test = `console.log(JSON.parse(responseBody))\ntest['Test Name'] = true`
+    step.test = `console.log(JSON.parse(responseBody))\ntests['Test Name'] = true`
 
     const dump = makeYaml({
         name: `curl_${+new Date()}`,
