@@ -109,22 +109,34 @@ Run specific steps, not all steps in a file
   - clear(v1, v2) # only clear v1 and v2
 ```
 
+### External Test Files
 
-`RUN()` step
+`include()` steps from another test file
 ```yaml
-  - RUN(file):  # no need .yaml or .json
-      steps:
-        - 1  # by index, starts with step 1
-        - Name of step
+steps:
+  - include(file[,step,step])  # no need .yaml or .json file extension
+    # by index, starts with step 1
+    # Name of step
 ```
+The include files also is recursive, meaning that the included file may also contain its own `include()` steps.
 
-### Shared Modules
+The include function requires the filename, and path is relative to the test file.
+
+Examples:
+```yaml
+steps:
+  - include(shared/login)
+    # by index, starts with step 1
+    # Name of step
+```
+### Shared Scripts
 
 Tired of writing the same file and postman not allowing to require external files?
 
-We've added `include` directive support in steps.
+We have also added `include:` directive support to import scripts. Note that this is not the same as the `include()` test files.
 
 ```yaml
+steps:
   - Login as Admin:
       POST: '{{domain}}/api/user/login'
       headers:
