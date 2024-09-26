@@ -1,6 +1,6 @@
 {
   "name": "pm-plus",
-  "version": "1.8.9",
+  "version": "1.8.9-dev",
   "description": "Postman collection simplified, in YAML",
   "bin": {
     "pm+": "index.js"
@@ -18,12 +18,13 @@
   "author": "Datum ClearMind Sdn Bhd",
   "license": "MIT",
   "dependencies": {
-    "chalk": "^4.1.2",
-    "content-disposition": "^0.5.3",
+    "chalk": "4.1.2",
+    "content-disposition": "0.5.4",
     "js-yaml": "^4.1.0",
-    "newman": "6.1.2",
+    "newman": "6.1.3",
+    "p-all": "3.0.0",
     "tiny-glob": "^0.2.9",
-    "url": "^0.11.0",
-    "yargs": "^17.2.1"
+    "url": "0.11.4",
+    "yargs": "17.7.2"
   }
 }

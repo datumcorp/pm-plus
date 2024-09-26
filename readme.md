@@ -82,6 +82,19 @@ instead of JSON
     },...
 ```
 
+### Parallel Tests
+
+Move the Yaml test files to different sub-directories, each directory represents a sequence of tests.
+
+Define a `.pdir` file, which is a JSON file containing array of sub-directories to run. For example:
+
+```json
+["test1", "test2", "test3"]
+```
+
+The above will run the three directories in parallel.
+
+
 ### Functionalities
 
 - `pm+ --convert pattern.(json|yaml)` convert between JSON and YAML format

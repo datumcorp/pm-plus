@@ -107,11 +107,15 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
             p.push(f)
         }
         else if (f.endsWith('.yaml')) {
-            const fn = await loadYaml(f, isRun)
+            const fn = await loadYaml(f)
             if (fn) {
                 p.push(fn)
                 cleanups.push(fn)
             }
+        }
+        else if (f.endsWith('.pdir')) {
+            // nested directory to run parallel
+            p.push(f)
         }
         return p
     }, Promise.resolve([]))
@@ -126,7 +130,9 @@ async function go(pattern, { domain, isConvert, isRun, exclude, returnValue }) {
             }]
         }
 
-        return run(env, files).then(errors => {
+        return run(env, files).then(res => {
+            const errors = res.errors
+            if (res.cleanups?.length) cleanups.push(...res.cleanups)
             // cleanup temp files
             // if (cleanups.length) console.log('\nCleanups')
             while (cleanups.length > 0) {
