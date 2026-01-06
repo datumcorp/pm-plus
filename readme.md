@@ -98,9 +98,11 @@ Run specific steps, not all steps in a file
 
 ### Variables
 
+This is a shorthand equivalent to `pm.variables.set()`
+
 `set()` step
 ```yaml
-  - set(variable=value)
+  - set('key', value)
 ```
 
 `clear()` step - to clear the variable set earlier
