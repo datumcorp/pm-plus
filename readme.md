@@ -102,7 +102,7 @@ This is a shorthand equivalent to `pm.variables.set()`
 
 `set()` step
 ```yaml
-  - set('key', value)
+  - set(key1=value1,[key2=value2])
 ```
 
 `clear()` step - to clear the variable set earlier
